@@ -88,6 +88,83 @@ A high-density dashboard built with Next.js and Recharts that allows users to:
 
 **Performance:** Utilizes Go's concurrency model (Goroutines) to fetch market data and user holdings in parallel, ensuring sub-100ms dashboard refreshes.
 
+## Financial Metrics Catalog
+
+YAFFA computes and tracks 40+ financial metrics across multiple dimensions:
+
+### Income Statement Metrics
+- **Revenue & Growth:** Revenue, Revenue Growth (YoY), Revenue Growth (QoQ)
+- **Profitability:** Gross Profit, Gross Margin, Operating Income, Operating Margin
+- **EBITDA:** EBITDA, EBITDA Margin, EBITDA Growth
+- **Net Income:** Net Income, Net Income Growth, Net Margin
+- **Per Share:** EPS, Diluted EPS, EPS Growth, Forward EPS (ML-predicted)
+
+### Expense Metrics
+- **Operating Costs:** COGS, R&D Expenses, SG&A Expenses
+- **Ratios:** R&D % of Revenue, SG&A % of Revenue
+- **Financing:** Interest Expense, Tax Expense, Effective Tax Rate
+
+### Cash Flow Metrics
+- **Operating & Free Cash:** Operating Cash Flow, Free Cash Flow, CapEx
+- **Margins & Growth:** FCF Margin (% of Revenue), FCF Growth (YoY)
+- **Capital Efficiency:** CapEx % of Revenue
+
+### Balance Sheet Metrics
+- **Assets:** Total Assets, Current Assets, Cash, Accounts Receivable, Inventory
+- **Liabilities:** Total Liabilities, Current Liabilities, Short-term Debt, Long-term Debt
+- **Equity:** Shareholders' Equity, Retained Earnings, Net Debt (TD - Cash)
+
+### Liquidity Ratios
+- **Current Ratio:** Current Assets / Current Liabilities
+- **Quick Ratio:** (Current Assets - Inventory) / Current Liabilities
+- **Cash Ratio:** Cash / Current Liabilities
+- **Working Capital:** Current Assets - Current Liabilities
+
+### Profitability Ratios
+- **Return on Equity (ROE):** Net Income / Shareholders' Equity (%)
+- **Return on Assets (ROA):** Net Income / Total Assets (%)
+- **ROIC:** Return on Invested Capital (%)
+- **Return on Capital:** Comprehensive capital efficiency metric
+
+### Valuation Ratios
+- **P/E Ratio:** Price / EPS (trailing)
+- **Forward P/E:** Price / Forward EPS (ML-predicted)
+- **Price-to-Book (P/B):** Price / Book Value
+- **Price-to-Sales (P/S):** Price / Annual Revenue
+- **Price-to-Cash-Flow (P/CF):** Price / Operating Cash Flow
+- **PEG Ratio:** P/E / Earnings Growth Rate
+- **EV-to-Revenue:** Enterprise Value / Revenue
+- **EV-to-EBITDA:** Enterprise Value / EBITDA
+- **FCF Yield:** Free Cash Flow / Market Cap (%)
+
+### Leverage & Solvency
+- **Debt-to-Equity:** Total Debt / Shareholders' Equity
+- **Debt-to-Assets:** Total Debt / Total Assets
+- **Equity Multiplier:** Total Assets / Shareholders' Equity
+- **Interest Coverage:** EBIT / Interest Expense
+- **Debt Service Coverage:** Operating Cash Flow / Total Debt
+
+### Efficiency Ratios
+- **Asset Turnover:** Revenue / Total Assets
+- **Inventory Turnover:** COGS / Inventory
+- **Receivables Turnover:** Revenue / Accounts Receivable
+- **Days Inventory Outstanding:** 365 / Inventory Turnover
+- **Days Sales Outstanding:** 365 / Receivables Turnover
+
+### Dividend & Shareholder Metrics
+- **Dividend Per Share:** Annual dividends per share
+- **Dividend Yield:** Dividend / Price (%)
+- **Payout Ratio:** Dividends / Net Income (%)
+- **Shares Outstanding:** Diluted share count (millions)
+- **Market Capitalization:** Price × Shares Outstanding
+
+### Valuation Estimates (ML)
+- **Fair Value:** ResMLP model prediction based on 5-year historical fundamentals
+- **Fair Value Range:** Upper and lower bound estimates
+- **Valuation Confidence:** 0-1 score indicating model certainty
+- **Valuation Gap:** (Fair Value - Current Price) / Current Price (%)
+- **Signal:** "Overvalued", "Fair", or "Undervalued"
+
 ## Implementation Roadmap
 
 ### File Structure
