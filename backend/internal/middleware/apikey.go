@@ -10,12 +10,17 @@ func APIKeyMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract the API key from the request header
 		apiKey := c.Request.Header.Get("X-API-KEY")
+		if apiKey == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing X-API-KEY header"})
+			c.Abort()
+			return
+		}
 
 		// Validate the API key
-		valid, err := ValidateAPIKey(apiKey)
-		if err != nil || !valid {
-			// If the API key is invalid or there is an error, abort the request with a 401 Unauthorized status
-			c.AbortWithStatus(http.StatusUnauthorized)
+		isValid, err := ValidateAPIKey(apiKey)
+		if err != nil || !isValid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid API key"})
+			c.Abort()
 			return
 		}
 
