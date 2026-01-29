@@ -1,99 +1,143 @@
-# YAFFA: Yet Another Fundamental Financial Analyzer
+# yaffa: Yet Another Fundamental Financial Analyzer
 
-YAFFA is a high-performance distributed data platform designed to ingest, normalize, and analyze SEC financial filings for over 3,000 public companies. Utilizing a multi-stage data lake architecture, the system transforms raw XBRL-formatted JSON data into high-fidelity financial ratios to facilitate automated outlier detection and fundamental valuation modeling.
+YAFFA is an end-to-end financial intelligence platform that merges professional-grade fundamental analysis with personal portfolio tracking. By combining distributed processing of SEC filings, real-time market data via yfinance, and secure bank linking via Plaid, YAFFA provides users with a "ground-truth" view of their investments versus intrinsic business value.
 
 ## Technical Stack
 
 - **Orchestration:** Apache Airflow
 - **Distributed Compute:** Apache Spark (PySpark)
-- **Deep Learning:** PyTorch
+- **Deep Learning:** PyTorch (Valuation Modeling)
 - **Backend:** Golang (Gin Framework)
+- **Account Integration:** Plaid API (Holdings & Investments)
 - **Frontend:** Next.js 15, TypeScript, Tailwind CSS
-- **AI/LLM:** Gemini 1.5 Pro (RAG Pipeline)
-- **Storage:** AWS S3 (Object Storage), MongoDB (Metadata), Parquet (Analytical Store)
+- **AI/LLM:** Qwen2 7B / Baichuan2 7B (Open-source, locally-hosted via Ollama or vLLM)
+- **Storage:** AWS S3 (Data Lake), MongoDB (User Metadata & Tokens), Parquet (Analytical Store)
 
 ## System Architecture
 
-### 1. Raw Data Ingestion Layer
+### 1. Multi-Source Ingestion Layer
 
-**Orchestration:** Airflow DAGs schedule Python-based workers to interface with the SEC EDGAR company-tickers mapping and bulk archival systems.
+The system synchronizes data from three distinct pipelines to provide a holistic market view:
 
-**Persistence:** Ingests bulk companyfacts.zip archives and incremental REST updates into S3 as immutable raw objects.
+**SEC EDGAR:** Automated extraction of historical 10-K/Q filings for "Ground Truth" fundamental data.
 
-**Compliance:** Implements rigorous rate limiting (10 requests/second) and header validation to adhere to SEC fair-access policies.
+**yfinance API:** Integration for real-time market pricing, historical volatility, adjusted closes, and company metadata.
 
-### 2. Standardized Processing Layer
+**Plaid API:** Secure OAuth-based linking of user bank and brokerage accounts to ingest real-time portfolio holdings and cost-basis data.
 
-**Data Flattening:** Spark jobs parse and flatten deeply nested XBRL JSON structures into tabular formats.
+### 2. Standardized Processing Layer (Spark)
 
-**Schema Normalization:** Maps diverse and inconsistent XBRL taxonomy tags (e.g., reconciling variations of NetIncome and NetLoss) into a unified corporate finance schema.
+**Normalization:** Spark jobs reconcile inconsistent XBRL tags from SEC filings into a unified schema.
 
-**Data Integrity:** Resolves "duplicate fact" conflicts by prioritizing the most recent accession_number per reporting period to ensure a consistent time-series.
+**Cross-Source Mapping:** A mapping service links SEC CIK identifiers with yfinance tickers and Plaid security IDs to ensure data consistency across the platform.
 
-### 3. Analytical Feature Layer
+**Deduplication:** Implements logic to resolve conflicting data points between official filings and third-party market aggregators.
+
+### 3. Portfolio & Fundamental Analytics
+
+**Feature Engineering:** Distributed computation of 30+ financial ratios (ROE, P/E, FCF Yield) alongside portfolio-specific metrics like Diversification Score and Sector Exposure.
+
+**Valuation Engine:** A PyTorch-based ResMLP model trains on historical fundamentals to predict a stock's "Fair Value," which is then compared against the user's actual brokerage cost-basis.
+
+### 4. Analytical Feature Layer
 
 **Parallel Computation:** Calculates 30+ core financial metrics across the entire dataset using distributed Spark executors:
 
 - **Liquidity:** Current Ratio, Quick Ratio, Operating Cash Flow
 - **Profitability:** Return on Equity (ROE), Net Margin, EBITDA Growth
 - **Valuation:** P/E Ratio, Debt-to-Equity, Free Cash Flow (FCF) Yield
+- **Portfolio:** Diversification Score, Sector Exposure, Cost-Basis Analysis
 
 **Storage:** Persists aggregated features in partitioned Parquet files for optimized Machine Learning training and low-latency retrieval.
 
-### 4. Machine Learning: Valuation Modeling
+### 5. Machine Learning: Valuation Modeling
 
 **Model Architecture:** Implements a Residual Multi-Layer Perceptron (ResMLP) using PyTorch.
 
-**Objective:** Performs high-dimensional regression to predict Forward EPS based on a five-year rolling window of historical fundamental ratios.
+**Objective:** Performs high-dimensional regression to predict Forward EPS and Fair Value based on a five-year rolling window of historical fundamental ratios.
 
 **Anomaly Detection:** Identifies "valuation gaps" where market pricing significantly deviates from the model-calculated intrinsic value.
 
-## Frontend Application Interface
+## User Interface & Features
 
-**Framework:** Developed with Next.js 15 and TypeScript for a type-safe, responsive financial dashboard.
+### Analysis Dashboard
 
-**Interactive Visualization:** Integrates Recharts and Chart.js to render multi-year fundamental trend lines and comparative sector performance metrics.
+A high-density dashboard built with Next.js and Recharts that allows users to:
 
-**State Management:** Utilizes TanStack Query for efficient data fetching, caching, and synchronization between the UI and the Go backend.
+- **Search & Analyze:** Deep-dive into any ticker to view fundamental health scores and AI-generated summaries of SEC risk factors
+- **Portfolio Oversight:** View linked brokerage holdings synced via Plaid, overlaying YAFFA's "Fair Value" predictions on top of current market prices
+- **Decision Support:** Visualize the delta between a company's fundamental performance and its current market sentiment
 
-## Qualitative Analysis Engine (LLM)
+### Qualitative AI Insights
 
-**RAG Pipeline:** Implements a Retrieval-Augmented Generation workflow to process non-numerical filing sections.
+**RAG Pipeline:** Utilizes open-source Qwen2 7B or Baichuan2 7B models, deployed locally via Ollama or vLLM, to parse the "Management Discussion & Analysis" (MD&A) sections of filings. This approach eliminates API costs and latency while maintaining strong multilingual financial reasoning.
 
-**Context Extraction:** Automatically parses Item 7 (Management's Discussion and Analysis) and Item 1A (Risk Factors) from 10-K filings.
+**Synthesized Summaries:** Generates executive summaries that highlight management guidance and operational risks, providing context that raw numbers often miss.
 
-**Strategic Summarization:** Leverages Gemini 1.5 Pro to generate executive-level summaries focusing on management guidance, latent operational risks, and forward-looking sentiment analysis.
+**Cost Efficiency:** By hosting the LLM locally on modest hardware (8GB+ GPU or CPU inference), YAFFA avoids per-token charges from commercial APIs, making the system economically viable for production-scale filing analysis.
 
-## Data Acquisition & External APIs
+## Backend Infrastructure (Go)
 
-The system maintains a diversified ingestion strategy to ensure redundancy and accuracy:
+**Unified API:** A versioned REST API built in Gin that aggregates data from S3 (fundamentals), MongoDB (user portfolio), and yfinance (price).
 
-- **SEC EDGAR API:** Primary source for official 10-K/Q filings and XBRL facts
-- **Financial Modeling Prep:** Standardized financial statements and real-time valuation metrics cross-checks
-- **Yahoo Finance (yfinance):** Secondary source for historical price action, market capitalization, and dividend history
-- **Finnhub:** Integrated for real-time news streams and analyst earnings estimates
+**Plaid Integration:** Manages the exchange of public tokens for access tokens, stored securely with encryption at rest.
 
-## Public API Access
+**LLM Service Proxy:** Go service that routes filing text to a local Ollama/vLLM endpoint for inference and caches results in MongoDB.
 
-YAFFA provides a versioned RESTful API for external developers to consume processed fundamental data and ML-derived insights.
+**Security & Auth:** Implements API Key validation and rate limiting to protect internal data services.
 
-**Authentication:** Access is managed via API Key middleware (X-API-KEY header), with keys stored and validated in MongoDB.
-
-**Documentation:** Interactive OpenAPI 3.0 (Swagger) documentation is available via the `/swagger/index.html` endpoint.
-
-**Rate Limiting:** Protects system integrity using leaky-bucket rate limiting at the middleware layer.
-
-**Example Endpoint:** `GET /api/v1/fundamentals/:ticker` returns a comprehensive payload of normalized ratios and predicted valuations.
-
-## System Performance Metrics
-
-- **Scalability:** Processed 10+ years of historical filing data for the entire S&P 500 in under 15 minutes on a distributed Spark cluster
-- **Latency:** Go-based REST API serves complex fundamental queries with a p99 response time under 50ms
-- **Observability:** Integrated multi-channel alerting (AWS SES, PagerDuty) via Airflow for immediate resolution of data pipeline failures
+**Performance:** Utilizes Go's concurrency model (Goroutines) to fetch market data and user holdings in parallel, ensuring sub-100ms dashboard refreshes.
 
 ## Implementation Roadmap
 
-This section outlines the initial module structure and method skeletons to be implemented. All code will be created under `/Users/affanmalik/Documents/Workspace/yaffa/`.
+### File Structure
+
+The project is organized as follows:
+
+```
+yaffa/
+├── dags/                          # Airflow orchestration
+│   └── ingest_dag.py
+├── storage/                       # S3 and data storage
+│   └── s3_client.py
+├── jobs/                          # Spark processing jobs
+│   ├── flatten_xbrl.py
+│   └── compute_features.py
+├── backend/                       # Golang API server
+│   ├── cmd/api/
+│   │   └── main.go
+│   └── internal/
+│       ├── middleware/
+│       │   ├── apikey.go
+│       │   └── ratelimit.go
+│       ├── handlers/
+│       │   └── fundamentals.go
+│       ├── models/
+│       │   └── types.go
+│       └── db/
+│           └── mongo.go
+├── ml/                            # Machine Learning (PyTorch)
+│   ├── models/
+│   │   └── resmlp.py
+│   └── train/
+│       └── train.py
+├── rag/                           # RAG & LLM utilities
+│   ├── retriever.py
+│   └── generator.py
+├── frontend/                      # Next.js frontend
+│   └── src/
+│       ├── pages/api/
+│       │   └── fundamentals/
+│       │       └── [ticker].ts
+│       └── lib/
+│           └── api.ts
+├── tools/                         # Utilities & DevOps
+│   └── openapi/
+│       └── generate.go
+└── README.md
+```
+
+### Implementation Modules
 
 ### 1. Airflow (Python)
 **File:** `dags/ingest_dag.py`

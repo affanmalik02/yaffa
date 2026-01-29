@@ -3,12 +3,16 @@ package db
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
-	// ...existing code...
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func Connect(uri string) (*mongo.Client, error) {
-	// TODO: implement connection with context and options
-	return nil, nil
+func Connect(ctx context.Context, uri string) (*mongo.Client, error) {
+	clientOpts := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(ctx, clientOpts)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func GetAPIKey(ctx context.Context, client *mongo.Client, key string) (map[string]interface{}, error) {
