@@ -1,4 +1,4 @@
-```python
+
 def compute_liquidity_metrics(df):
 	"""Compute current ratio, quick ratio, operating cash flow metrics."""
 	# TODO: implement
@@ -23,4 +23,3 @@ def persist_features(df, path):
 	"""Persist final feature set to Parquet for ML and API consumption."""
 	# TODO: implement
 	raise NotImplementedError
-```
