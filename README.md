@@ -11,6 +11,7 @@ YAFFA is an end-to-end financial intelligence platform that merges professional-
 - **Account Integration:** Plaid API (Holdings & Investments)
 - **Frontend:** Next.js 15, TypeScript, Tailwind CSS
 - **AI/LLM:** Qwen2 7B / Baichuan2 7B (Open-source, locally-hosted via Ollama or vLLM)
+- **Orchestration:** LangChain for RAG workflows and prompt management, keeping the retrieval and generation layers decoupled.
 - **Storage:** AWS S3 (Data Lake), MongoDB (User Metadata & Tokens), Parquet (Analytical Store)
 
 ## System Architecture
@@ -70,7 +71,7 @@ A high-density dashboard built with Next.js and Recharts that allows users to:
 
 ### Qualitative AI Insights
 
-**RAG Pipeline:** Utilizes open-source Qwen2 7B or Baichuan2 7B models, deployed locally via Ollama or vLLM, to parse the "Management Discussion & Analysis" (MD&A) sections of filings. This approach eliminates API costs and latency while maintaining strong multilingual financial reasoning.
+**RAG Pipeline:** Built using LangChain to manage document loaders, vector stores, retrievers and chain logic. It utilizes open-source Qwen2 7B or Baichuan2 7B models, deployed locally via Ollama or vLLM, to parse the "Management Discussion & Analysis" (MD&A) sections of filings. This architecture keeps retrieval, prompting, and inference modular and easily testable. The LangChain abstraction makes it straightforward to swap in different embedding models, vector databases or LLMs while keeping higher‑level business logic stable. By orchestrating locally‑hosted models we eliminate API costs and latency while maintaining strong multilingual financial reasoning.
 
 **Synthesized Summaries:** Generates executive summaries that highlight management guidance and operational risks, providing context that raw numbers often miss.
 
@@ -166,6 +167,19 @@ YAFFA computes and tracks 40+ financial metrics across multiple dimensions:
 - **Signal:** "Overvalued", "Fair", or "Undervalued"
 
 ## Implementation Roadmap
+
+
+### Engineering & Design Notes
+
+The current flow has been designed with separation of concerns and modularity in mind:
+
+- **Pipelines Are Decoupled:** Ingestion, processing, analytics, ML training and serving are separate components (Airflow, Spark, PyTorch, Go API).
+- **Asynchronous & Distributed:** Spark jobs and Go services leverage concurrency for scalability. Airflow DAGs enforce idempotency and retries.
+- **Interfaces & Contracts:** Each layer communicates via well-defined schemas (Parquet, Mongo documents, REST APIs). Versioning protects consumers from breaking changes.
+- **Testing & Observability:** Unit tests sit alongside business logic; data quality checks run in DAGs; logging/metrics are emitted at every boundary.
+- **Caching & Rate‑Limiting:** The LLM proxy caches results and LangChain abstracts retrievers, preventing redundant calls. Go middleware handles API keys and limits.
+
+These practices ensure that the architecture is maintainable, extensible, and follows good engineering principles. Re‑evaluating this flow periodically—especially the RAG chain and data schema mappings—helps catch drift early.
 
 ### File Structure
 
